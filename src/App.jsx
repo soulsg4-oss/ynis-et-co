@@ -420,16 +420,28 @@ export default function App() {
 
   const exportICS = () => {
     const pad = (n) => String(n).padStart(2, "0");
+
     const toICSDate = (dateStr, timeStr) => {
       const [y, m, d] = dateStr.split("-");
       if (timeStr) {
         const [h, min] = timeStr.split(":");
-        return `${y}${m}${d}T${h}${min}00`;
+        return y + m + d + "T" + h + min + "00";
       }
-      return `${y}${m}${d}`;
+      return y + m + d;
     };
 
-    const escape = (str) => { if (!str) return ""; return str.replace(/[,;\\]/g, (c) => "\\" + c).replace(/\n/g, "\\n"); };
+    const escapeICS = (str) => {
+      if (!str) return "";
+      let result = "";
+      for (let i = 0; i < str.length; i++) {
+        const c = str[i];
+        if (c === "\" || c === "," || c === ";") result += "\" + c;
+        else if (c === "
+") result += "\n";
+        else result += c;
+      }
+      return result;
+    };
 
     const future = sessions.filter(s => s.date).sort((a, b) => a.date.localeCompare(b.date));
 
@@ -444,43 +456,41 @@ export default function App() {
       "PRODID:-//Ynis & co//JDR Calendar//FR",
       "CALSCALE:GREGORIAN",
       "METHOD:PUBLISH",
-      "X-WR-CALNAME:Ynis & co — Parties JDR",
+      "X-WR-CALNAME:Ynis & co - Parties JDR",
     ];
 
     future.forEach(s => {
-      const uid = `${s.id}@ynis-et-co`;
+      const uid = s.id + "@ynis-et-co";
       const dtstart = toICSDate(s.date, s.time);
       const allDay = !s.time;
       const [y, m, d] = s.date.split("-").map(Number);
       const nextDay = new Date(y, m - 1, d + 1);
       const dtend = allDay
-        ? `${nextDay.getFullYear()}${pad(nextDay.getMonth()+1)}${pad(nextDay.getDate())}`
-        : toICSDate(s.date, s.time); // same time, 2h later
-      const players = s.players?.length ? `Joueurs: ${s.players.join(", ")}` : "";
-      const desc = [players, s.summary ? `Résumé: ${s.summary}` : ""].filter(Boolean).join("\n");
+        ? nextDay.getFullYear() + pad(nextDay.getMonth()+1) + pad(nextDay.getDate())
+        : toICSDate(s.date, pad((parseInt(s.time.split(":")[0]) + 3) % 24) + ":" + s.time.split(":")[1]);
+
+      const players = s.players && s.players.length ? "Joueurs: " + s.players.join(", ") : "";
+      const desc = [players, s.summary ? "Resume: " + s.summary : ""].filter(Boolean).join("\n");
+      const title = "JDR " + escapeICS(s.name) + (s.gm ? " (MJ: " + escapeICS(s.gm) + ")" : "");
 
       lines.push("BEGIN:VEVENT");
-      lines.push(`UID:${uid}`);
-      lines.push(`SUMMARY:🎲 ${escape(s.name)}${s.gm ? ` (MJ: ${escape(s.gm)})` : ""}`);
+      lines.push("UID:" + uid);
+      lines.push("SUMMARY:" + title);
       if (allDay) {
-        lines.push(`DTSTART;VALUE=DATE:${dtstart}`);
-        lines.push(`DTEND;VALUE=DATE:${dtend}`);
+        lines.push("DTSTART;VALUE=DATE:" + dtstart);
+        lines.push("DTEND;VALUE=DATE:" + dtend);
       } else {
-        lines.push(`DTSTART:${dtstart}`);
-        // Add 3 hours for end time
-        const [h, min] = s.time.split(":").map(Number);
-        const endH = pad((h + 3) % 24);
-        lines.push(`DTEND:${toICSDate(s.date, `${endH}:${pad(min)}`)}`);
+        lines.push("DTSTART:" + dtstart);
+        lines.push("DTEND:" + dtend);
       }
-      if (desc) lines.push(`DESCRIPTION:${desc}`);
-      if (s.system) lines.push(`CATEGORIES:${escape(s.system)}`);
+      if (desc) lines.push("DESCRIPTION:" + escapeICS(desc));
+      if (s.system) lines.push("CATEGORIES:" + escapeICS(s.system));
       lines.push("END:VEVENT");
     });
 
     lines.push("END:VCALENDAR");
 
-    const blob = new Blob([lines.join("
-")], { type: "text/calendar;charset=utf-8" });
+    const blob = new Blob([lines.join("\r\n")], { type: "text/calendar;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -489,7 +499,7 @@ export default function App() {
     URL.revokeObjectURL(url);
   };
 
-  const closeAll = () => { setModal(null); setEditSession(null); setSelectedDate(null); };
+    const closeAll = () => { setModal(null); setEditSession(null); setSelectedDate(null); };
 
   if (loading) return (
     <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:C.bgDeep, color:C.pale, fontFamily:"'Cinzel', serif" }}>
