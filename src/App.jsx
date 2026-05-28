@@ -429,8 +429,7 @@ export default function App() {
       return `${y}${m}${d}`;
     };
 
-    const escape = (str) => (str || "").replace(/[\,;]/g, "\$&").replace(/
-/g, "\n");
+    const escape = (str) => { if (!str) return ""; return str.replace(/[,;\\]/g, (c) => "\\" + c).replace(/\n/g, "\\n"); };
 
     const future = sessions.filter(s => s.date).sort((a, b) => a.date.localeCompare(b.date));
 
