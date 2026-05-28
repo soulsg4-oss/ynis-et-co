@@ -545,16 +545,6 @@ export default function App() {
                 {saveStatus==="saving" ? "⏳ Sauvegarde…" : "✓ Sauvegardé"}
               </span>
             )}
-            <button onClick={exportICS} style={{
-              background: "transparent",
-              border:`1px solid ${C.mid}66`, color:C.textDim, borderRadius:"8px",
-              padding:"9px 14px", cursor:"pointer", fontSize:"0.8rem", fontWeight:600,
-              display:"flex", alignItems:"center", gap:"6px", transition:"all 0.2s"
-            }}
-            onMouseEnter={e=>{ e.currentTarget.style.borderColor=`${C.light}99`; e.currentTarget.style.color=C.pale; }}
-            onMouseLeave={e=>{ e.currentTarget.style.borderColor=`${C.mid}66`; e.currentTarget.style.color=C.textDim; }}
-            title="Télécharger un fichier .ics à importer dans Google Calendar, Apple Calendar, etc."
-            >📅 Exporter .ics</button>
             <button onClick={() => { setEditSession(null); setSelectedDate(null); setModal("form"); }} style={{
               background: `linear-gradient(135deg, ${C.accent}, #c83030)`,
               border:"none", color:"#fff", borderRadius:"8px",
@@ -650,7 +640,18 @@ export default function App() {
                   ))}
                 </div>
               )}
-              <div style={{ borderTop:`1px solid ${C.mid}22`, marginTop:"14px", paddingTop:"14px" }}>
+              <div style={{ borderTop:`1px solid ${C.mid}22`, marginTop:"14px", paddingTop:"14px", display:"flex", flexDirection:"column", gap:"8px" }}>
+                <button onClick={exportICS} style={{
+                  width:"100%", background:"transparent",
+                  border:`1px solid ${C.mid}55`, color:C.textDim,
+                  borderRadius:"8px", padding:"9px 12px", cursor:"pointer",
+                  fontSize:"0.75rem", fontWeight:600, transition:"all 0.2s",
+                  display:"flex", alignItems:"center", justifyContent:"center", gap:"6px"
+                }}
+                onMouseEnter={e=>{ e.currentTarget.style.borderColor=`${C.light}88`; e.currentTarget.style.color=C.pale; e.currentTarget.style.background=`${C.dark}66`; }}
+                onMouseLeave={e=>{ e.currentTarget.style.borderColor=`${C.mid}55`; e.currentTarget.style.color=C.textDim; e.currentTarget.style.background="transparent"; }}
+                title="Télécharger un fichier .ics à importer dans Google Calendar, Apple Calendar, etc."
+                >📅 Exporter vers Google Calendar</button>
                 <div style={{ fontSize:"0.62rem", color:`${C.textDim}66`, textAlign:"center" }}>
                   💡 Cliquez sur un jour pour gérer les parties
                 </div>
