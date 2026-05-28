@@ -174,6 +174,72 @@ function DayPanel({ date, sessions, onAdd, onSelect, onClose }) {
   );
 }
 
+
+function CampaignChooser({ sessions, date, onChoose, onClose }) {
+  // Get unique campaigns (by name), with their most recent session
+  const campaigns = {};
+  sessions.forEach(s => {
+    if (!campaigns[s.name] || s.date > campaigns[s.name].date) {
+      campaigns[s.name] = s;
+    }
+  });
+  const campaignList = Object.values(campaigns).sort((a, b) => b.date.localeCompare(a.date));
+
+  return (
+    <div style={{
+      background: `linear-gradient(145deg, ${C.bgDeep}, ${C.bg})`,
+      border: `1px solid ${C.mid}55`, borderRadius: "16px", padding: "28px",
+      width: "min(480px, 95vw)", boxShadow: "0 20px 60px rgba(0,0,0,0.7)"
+    }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:"22px" }}>
+        <h2 style={{ margin:0, color:C.pale, fontSize:"1.15rem", fontFamily:"'Cinzel', serif", display:"flex", alignItems:"center", gap:"8px" }}>
+          <img src={D20_ICON} alt="" style={{ width:"20px", height:"20px", filter:"invert(1) sepia(1) saturate(2) hue-rotate(180deg) brightness(1.4)" }} />
+          Nouvelle partie
+        </h2>
+        <button onClick={onClose} style={{ background:"none", border:"none", color:C.textDim, cursor:"pointer", fontSize:"1.4rem" }}>×</button>
+      </div>
+
+      <p style={{ margin:"0 0 20px", color:C.textDim, fontSize:"0.85rem", lineHeight:1.6 }}>
+        S'agit-il d'une nouvelle campagne ou d'une session existante ?
+      </p>
+
+      <div style={{ display:"flex", flexDirection:"column", gap:"10px", marginBottom:"20px" }}>
+        {campaignList.map(s => (
+          <div key={s.id} onClick={() => onChoose({ ...s, id: null, date: date || "", summary: "" })}
+            style={{
+              display:"flex", alignItems:"center", gap:"12px",
+              background:`${C.dark}88`, border:`1px solid ${C.mid}33`,
+              borderRadius:"10px", padding:"12px 16px", cursor:"pointer", transition:"all 0.2s"
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor=`${C.accent}66`; e.currentTarget.style.background=`${C.mid}33`; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor=`${C.mid}33`; e.currentTarget.style.background=`${C.dark}88`; }}
+          >
+            <div style={{ width:"40px", height:"40px", borderRadius:"7px", overflow:"hidden", flexShrink:0 }}>
+              <img src={s.imageUrl || SYSTEM_IMAGES[s.system] || DEFAULT_IMAGE} alt={s.name}
+                style={{ width:"100%", height:"100%", objectFit:"cover" }}
+                onError={e => { e.target.src = DEFAULT_IMAGE; }} />
+            </div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:"0.88rem", fontWeight:700, color:C.pale, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{s.name}</div>
+              <div style={{ fontSize:"0.68rem", color:C.textDim }}>🎲 {s.gm}{s.system ? ` · ${s.system}` : ""}</div>
+            </div>
+            <div style={{ fontSize:"0.75rem", color:C.textDim }}>›</div>
+          </div>
+        ))}
+      </div>
+
+      <button onClick={() => onChoose(null)} style={{
+        width:"100%", background:`linear-gradient(135deg, ${C.accent}, #c83030)`,
+        border:"none", color:"#fff", borderRadius:"10px",
+        padding:"12px", cursor:"pointer", fontSize:"0.88rem", fontWeight:700,
+        boxShadow:`0 4px 14px ${C.accent}44`
+      }}>
+        + Nouvelle campagne
+      </button>
+    </div>
+  );
+}
+
 function SessionForm({ session, onSave, onDelete, onClose }) {
   const [form, setForm] = useState(session || { name:"", gm:"", players:[], system:"", time:"", imageUrl:"", summary:"", date:"" });
   const [playerInput, setPlayerInput] = useState(session?.players?.join(", ") || "");
@@ -279,7 +345,7 @@ function SessionForm({ session, onSave, onDelete, onClose }) {
   );
 }
 
-function SessionDetail({ session, onEdit, onDuplicate, onClose }) {
+function SessionDetail({ session, onEdit, onClose }) {
   const img = session.imageUrl || SYSTEM_IMAGES[session.system] || DEFAULT_IMAGE;
   return (
     <div style={{
@@ -331,11 +397,7 @@ function SessionDetail({ session, onEdit, onDuplicate, onClose }) {
             border:`1px solid ${C.light}33`, color:"#fff", borderRadius:"10px",
             padding:"11px", cursor:"pointer", fontSize:"0.88rem", fontWeight:700
           }}>✏️ Modifier</button>
-          <button onClick={()=>{ onDuplicate(session); }} style={{
-            flex:1, background:`linear-gradient(135deg, ${C.dark}, ${C.bgDeep})`,
-            border:`1px solid ${C.accent}55`, color:C.accent, borderRadius:"10px",
-            padding:"11px", cursor:"pointer", fontSize:"0.88rem", fontWeight:700
-          }}>⧉ Dupliquer</button>
+
         </div>
       </div>
     </div>
@@ -347,7 +409,7 @@ export default function App() {
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [sessions, setSessions] = useState([]);
-  const [modal, setModal] = useState(null); // null | 'day' | 'form' | 'detail'
+  const [modal, setModal] = useState(null); // null | 'chooser' | 'day' | 'form' | 'detail'
   const [selectedDate, setSelectedDate] = useState(null);
   const [editSession, setEditSession] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -411,7 +473,7 @@ export default function App() {
     setSelectedDate(dateStr);
     if (daySessions.length === 0) {
       setEditSession(null);
-      setModal("form");
+      setModal(sessions.length > 0 ? "chooser" : "form");
     } else {
       setModal("day");
     }
@@ -554,7 +616,7 @@ export default function App() {
                 {saveStatus==="saving" ? "⏳ Sauvegarde…" : "✓ Sauvegardé"}
               </span>
             )}
-            <button onClick={() => { setEditSession(null); setSelectedDate(null); setModal("form"); }} style={{
+            <button onClick={() => { setEditSession(null); setSelectedDate(null); setModal(sessions.length > 0 ? "chooser" : "form"); }} style={{
               background: `linear-gradient(135deg, ${C.accent}, #c83030)`,
               border:"none", color:"#fff", borderRadius:"8px",
               padding:"9px 18px", cursor:"pointer", fontSize:"0.8rem", fontWeight:700,
@@ -676,8 +738,23 @@ export default function App() {
           <DayPanel
             date={selectedDate}
             sessions={sessions.filter(s=>s.date===selectedDate).sort((a,b)=>(a.time||"").localeCompare(b.time||""))}
-            onAdd={() => { setEditSession(null); setModal("form"); }}
+            onAdd={() => { setEditSession(null); setModal(sessions.length > 0 ? "chooser" : "form"); }}
             onSelect={(s) => { setEditSession(s); setModal("detail"); }}
+            onClose={closeAll}
+          />
+        </Modal>
+      )}
+
+      {/* Modal: campaign chooser */}
+      {modal === "chooser" && (
+        <Modal onClose={closeAll}>
+          <CampaignChooser
+            sessions={sessions}
+            date={selectedDate}
+            onChoose={(prefill) => {
+              setEditSession(prefill);
+              setModal("form");
+            }}
             onClose={closeAll}
           />
         </Modal>
@@ -702,12 +779,6 @@ export default function App() {
           <SessionDetail
             session={editSession}
             onEdit={(s) => { setEditSession(s); setModal("form"); }}
-            onDuplicate={(s) => {
-              const copy = { ...s, id: null, date: "" };
-              setEditSession(copy);
-              setSelectedDate(null);
-              setModal("form");
-            }}
             onClose={closeAll}
           />
         </Modal>
