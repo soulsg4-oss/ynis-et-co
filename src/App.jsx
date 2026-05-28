@@ -434,10 +434,10 @@ export default function App() {
       if (!str) return "";
       let result = "";
       for (let i = 0; i < str.length; i++) {
+        const code = str.charCodeAt(i);
         const c = str[i];
-        if (c === "\" || c === "," || c === ";") result += "\" + c;
-        else if (c === "
-") result += "\n";
+        if (code === 92 || code === 44 || code === 59) result += String.fromCharCode(92) + c;
+        else if (code === 10) result += String.fromCharCode(92) + "n";
         else result += c;
       }
       return result;
