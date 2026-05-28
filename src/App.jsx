@@ -279,7 +279,7 @@ function SessionForm({ session, onSave, onDelete, onClose }) {
   );
 }
 
-function SessionDetail({ session, onEdit, onClose }) {
+function SessionDetail({ session, onEdit, onDuplicate, onClose }) {
   const img = session.imageUrl || SYSTEM_IMAGES[session.system] || DEFAULT_IMAGE;
   return (
     <div style={{
@@ -325,11 +325,18 @@ function SessionDetail({ session, onEdit, onClose }) {
             <p style={{ margin:0, color:`${C.pale}cc`, fontSize:"0.83rem", lineHeight:1.7 }}>{session.summary}</p>
           </div>
         )}
-        <button onClick={()=>{ onEdit(session); onClose(); }} style={{
-          width:"100%", background:`linear-gradient(135deg, ${C.mid}, ${C.dark})`,
-          border:`1px solid ${C.light}33`, color:"#fff", borderRadius:"10px",
-          padding:"11px", cursor:"pointer", fontSize:"0.88rem", fontWeight:700
-        }}>✏️ Modifier cette partie</button>
+        <div style={{ display:"flex", gap:"10px" }}>
+          <button onClick={()=>{ onEdit(session); onClose(); }} style={{
+            flex:1, background:`linear-gradient(135deg, ${C.mid}, ${C.dark})`,
+            border:`1px solid ${C.light}33`, color:"#fff", borderRadius:"10px",
+            padding:"11px", cursor:"pointer", fontSize:"0.88rem", fontWeight:700
+          }}>✏️ Modifier</button>
+          <button onClick={()=>{ onDuplicate(session); onClose(); }} style={{
+            flex:1, background:`linear-gradient(135deg, ${C.dark}, ${C.bgDeep})`,
+            border:`1px solid ${C.accent}55`, color:C.accent, borderRadius:"10px",
+            padding:"11px", cursor:"pointer", fontSize:"0.88rem", fontWeight:700
+          }}>⧉ Dupliquer</button>
+        </div>
       </div>
     </div>
   );
@@ -410,6 +417,79 @@ export default function App() {
     }
   };
 
+
+  const exportICS = () => {
+    const pad = (n) => String(n).padStart(2, "0");
+    const toICSDate = (dateStr, timeStr) => {
+      const [y, m, d] = dateStr.split("-");
+      if (timeStr) {
+        const [h, min] = timeStr.split(":");
+        return `${y}${m}${d}T${h}${min}00`;
+      }
+      return `${y}${m}${d}`;
+    };
+
+    const escape = (str) => (str || "").replace(/[\,;]/g, "\$&").replace(/
+/g, "\n");
+
+    const future = sessions.filter(s => s.date).sort((a, b) => a.date.localeCompare(b.date));
+
+    if (future.length === 0) {
+      alert("Aucune partie à exporter !");
+      return;
+    }
+
+    const lines = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//Ynis & co//JDR Calendar//FR",
+      "CALSCALE:GREGORIAN",
+      "METHOD:PUBLISH",
+      "X-WR-CALNAME:Ynis & co — Parties JDR",
+    ];
+
+    future.forEach(s => {
+      const uid = `${s.id}@ynis-et-co`;
+      const dtstart = toICSDate(s.date, s.time);
+      const allDay = !s.time;
+      const [y, m, d] = s.date.split("-").map(Number);
+      const nextDay = new Date(y, m - 1, d + 1);
+      const dtend = allDay
+        ? `${nextDay.getFullYear()}${pad(nextDay.getMonth()+1)}${pad(nextDay.getDate())}`
+        : toICSDate(s.date, s.time); // same time, 2h later
+      const players = s.players?.length ? `Joueurs: ${s.players.join(", ")}` : "";
+      const desc = [players, s.summary ? `Résumé: ${s.summary}` : ""].filter(Boolean).join("\n");
+
+      lines.push("BEGIN:VEVENT");
+      lines.push(`UID:${uid}`);
+      lines.push(`SUMMARY:🎲 ${escape(s.name)}${s.gm ? ` (MJ: ${escape(s.gm)})` : ""}`);
+      if (allDay) {
+        lines.push(`DTSTART;VALUE=DATE:${dtstart}`);
+        lines.push(`DTEND;VALUE=DATE:${dtend}`);
+      } else {
+        lines.push(`DTSTART:${dtstart}`);
+        // Add 3 hours for end time
+        const [h, min] = s.time.split(":").map(Number);
+        const endH = pad((h + 3) % 24);
+        lines.push(`DTEND:${toICSDate(s.date, `${endH}:${pad(min)}`)}`);
+      }
+      if (desc) lines.push(`DESCRIPTION:${desc}`);
+      if (s.system) lines.push(`CATEGORIES:${escape(s.system)}`);
+      lines.push("END:VEVENT");
+    });
+
+    lines.push("END:VCALENDAR");
+
+    const blob = new Blob([lines.join("
+")], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "ynis-et-co.ics";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const closeAll = () => { setModal(null); setEditSession(null); setSelectedDate(null); };
 
   if (loading) return (
@@ -465,6 +545,16 @@ export default function App() {
                 {saveStatus==="saving" ? "⏳ Sauvegarde…" : "✓ Sauvegardé"}
               </span>
             )}
+            <button onClick={exportICS} style={{
+              background: "transparent",
+              border:`1px solid ${C.mid}66`, color:C.textDim, borderRadius:"8px",
+              padding:"9px 14px", cursor:"pointer", fontSize:"0.8rem", fontWeight:600,
+              display:"flex", alignItems:"center", gap:"6px", transition:"all 0.2s"
+            }}
+            onMouseEnter={e=>{ e.currentTarget.style.borderColor=`${C.light}99`; e.currentTarget.style.color=C.pale; }}
+            onMouseLeave={e=>{ e.currentTarget.style.borderColor=`${C.mid}66`; e.currentTarget.style.color=C.textDim; }}
+            title="Télécharger un fichier .ics à importer dans Google Calendar, Apple Calendar, etc."
+            >📅 Exporter .ics</button>
             <button onClick={() => { setEditSession(null); setSelectedDate(null); setModal("form"); }} style={{
               background: `linear-gradient(135deg, ${C.accent}, #c83030)`,
               border:"none", color:"#fff", borderRadius:"8px",
@@ -601,6 +691,11 @@ export default function App() {
           <SessionDetail
             session={editSession}
             onEdit={(s) => { setEditSession(s); setModal("form"); }}
+            onDuplicate={(s) => {
+              setEditSession({ ...s, id: null, date: "", time: s.time });
+              setSelectedDate(null);
+              setModal("form");
+            }}
             onClose={closeAll}
           />
         </Modal>
