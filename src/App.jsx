@@ -331,7 +331,7 @@ function SessionDetail({ session, onEdit, onDuplicate, onClose }) {
             border:`1px solid ${C.light}33`, color:"#fff", borderRadius:"10px",
             padding:"11px", cursor:"pointer", fontSize:"0.88rem", fontWeight:700
           }}>✏️ Modifier</button>
-          <button onClick={()=>{ onDuplicate(session); onClose(); }} style={{
+          <button onClick={()=>{ onDuplicate(session); }} style={{
             flex:1, background:`linear-gradient(135deg, ${C.dark}, ${C.bgDeep})`,
             border:`1px solid ${C.accent}55`, color:C.accent, borderRadius:"10px",
             padding:"11px", cursor:"pointer", fontSize:"0.88rem", fontWeight:700
@@ -688,7 +688,7 @@ export default function App() {
         <Modal onClose={closeAll}>
           <SessionForm
             key={editSession?.id || "new-" + (selectedDate || Date.now())}
-            session={editSession?.id ? editSession : (editSession && !editSession.id && editSession.name ? editSession : (selectedDate ? { date: selectedDate } : null))}
+            session={editSession?.id ? editSession : (editSession?.name ? { ...editSession, id: undefined } : (selectedDate ? { date: selectedDate } : null))}
             onSave={handleSave}
             onDelete={handleDelete}
             onClose={closeAll}
@@ -703,7 +703,8 @@ export default function App() {
             session={editSession}
             onEdit={(s) => { setEditSession(s); setModal("form"); }}
             onDuplicate={(s) => {
-              setEditSession({ ...s, id: null, date: "", time: s.time });
+              const copy = { ...s, id: null, date: "" };
+              setEditSession(copy);
               setSelectedDate(null);
               setModal("form");
             }}
