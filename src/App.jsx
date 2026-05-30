@@ -397,14 +397,11 @@ function SessionDetail({ session, onEdit, onClose }) {
             <p style={{ margin:0, color:`${C.pale}cc`, fontSize:"0.83rem", lineHeight:1.7 }}>{session.summary}</p>
           </div>
         )}
-        <div style={{ display:"flex", gap:"10px" }}>
-          <button onClick={()=>{ onEdit(session); onClose(); }} style={{
-            flex:1, background:`linear-gradient(135deg, ${C.mid}, ${C.dark})`,
-            border:`1px solid ${C.light}33`, color:"#fff", borderRadius:"10px",
-            padding:"11px", cursor:"pointer", fontSize:"0.88rem", fontWeight:700
-          }}>✏️ Modifier</button>
-
-        </div>
+        <button onClick={()=>{ onEdit(session); }} style={{
+          width:"100%", background:`linear-gradient(135deg, ${C.mid}, ${C.dark})`,
+          border:`1px solid ${C.light}33`, color:"#fff", borderRadius:"10px",
+          padding:"11px", cursor:"pointer", fontSize:"0.88rem", fontWeight:700
+        }}>✏️ Modifier cette partie</button>
       </div>
     </div>
   );
