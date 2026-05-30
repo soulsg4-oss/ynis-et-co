@@ -241,9 +241,15 @@ function CampaignChooser({ sessions, date, onChoose, onClose }) {
 }
 
 function SessionForm({ session, onSave, onDelete, onClose }) {
-  const [form, setForm] = useState(session || { name:"", gm:"", players:[], system:"", time:"", imageUrl:"", summary:"", date:"" });
+  const blank = { name:"", gm:"", players:[], system:"", time:"", imageUrl:"", summary:"", date:"" };
+  const [form, setForm] = useState(session || blank);
   const [playerInput, setPlayerInput] = useState(session?.players?.join(", ") || "");
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  useEffect(() => {
+    setForm(session || blank);
+    setPlayerInput(session?.players?.join(", ") || "");
+  }, [session]);
 
   const handleSave = () => {
     if (!form.name || !form.gm || !form.date) return;
@@ -764,7 +770,7 @@ export default function App() {
       {modal === "form" && (
         <Modal onClose={closeAll}>
           <SessionForm
-            key={editSession?.id || "new-" + (selectedDate || "blank")}
+            key={(editSession?.id || "new") + "-" + (selectedDate || "") + "-" + modal}
             session={editSession || (selectedDate ? { date: selectedDate } : null)}
             onSave={handleSave}
             onDelete={handleDelete}
