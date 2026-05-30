@@ -764,8 +764,8 @@ export default function App() {
       {modal === "form" && (
         <Modal onClose={closeAll}>
           <SessionForm
-            key={editSession?.id || "new-" + (selectedDate || Date.now())}
-            session={editSession?.id ? editSession : (editSession?.name ? { ...editSession, id: undefined } : (selectedDate ? { date: selectedDate } : null))}
+            key={editSession?.id || "new-" + (selectedDate || "blank")}
+            session={editSession || (selectedDate ? { date: selectedDate } : null)}
             onSave={handleSave}
             onDelete={handleDelete}
             onClose={closeAll}
